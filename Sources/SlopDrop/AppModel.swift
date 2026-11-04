@@ -26,7 +26,7 @@ final class AppModel: ObservableObject {
     }
     @Published private(set) var stats = AgentStats()
     @Published private(set) var styles: [StyleDescriptor] = []
-    @Published private(set) var rules: [Rule] = RuleStore.load()
+    @Published private(set) var rules: [Rule] = RuleStore.loadOrSeed()
     @Published var revealed = false { didSet { schedulePush() } }
     @Published var pickMode = false { didSet { schedulePush() } }
 
