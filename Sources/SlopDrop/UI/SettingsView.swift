@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class SettingsRouter: ObservableObject {
     enum Page: String, CaseIterable, Identifiable {
-        case general, apps
+        case general, apps, about
 
         var id: String { rawValue }
 
@@ -12,6 +12,7 @@ final class SettingsRouter: ObservableObject {
             switch self {
             case .general: return "General"
             case .apps: return "Apps"
+            case .about: return "About"
             }
         }
 
@@ -19,6 +20,7 @@ final class SettingsRouter: ObservableObject {
             switch self {
             case .general: return "gearshape.fill"
             case .apps: return "square.stack.3d.up.fill"
+            case .about: return "info"
             }
         }
 
@@ -26,6 +28,7 @@ final class SettingsRouter: ObservableObject {
             switch self {
             case .general: return [Color(white: 0.6), Color(white: 0.42)]
             case .apps: return [Color(red: 0.6, green: 0.45, blue: 0.98), Color(red: 0.44, green: 0.3, blue: 0.88)]
+            case .about: return [Color(red: 0.36, green: 0.62, blue: 1), Color(red: 0.2, green: 0.43, blue: 0.93)]
             }
         }
     }
@@ -36,11 +39,12 @@ final class SettingsRouter: ObservableObject {
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var router: SettingsRouter
+    @ObservedObject var updater: Updater
     @State private var query = ""
 
     var body: some View {
         HStack(spacing: 0) {
-            Sidebar(model: model, router: router, query: $query)
+            Sidebar(model: model, router: router, updater: updater, query: $query)
                 .frame(width: 236)
                 .background(Palette.sidebar)
             Rectangle().fill(Palette.hairline).frame(width: 0.5)
@@ -67,6 +71,7 @@ struct SettingsView: View {
                     switch router.page {
                     case .general: GeneralPane(model: model)
                     case .apps: AppsPane(model: model, query: trimmedQuery)
+                    case .about: AboutPane(updater: updater)
                     }
                 }
                 .frame(maxWidth: 680, alignment: .leading)
@@ -98,6 +103,7 @@ struct SettingsView: View {
 private struct Sidebar: View {
     @ObservedObject var model: AppModel
     @ObservedObject var router: SettingsRouter
+    @ObservedObject var updater: Updater
     @Binding var query: String
 
     var body: some View {
@@ -108,7 +114,14 @@ private struct Sidebar: View {
 
             VStack(spacing: 2) {
                 ForEach(SettingsRouter.Page.allCases) { page in
-                    NavRow(title: page.title, symbol: page.symbol, colors: page.colors, selected: router.page == page) {
+                    NavRow(
+                        title: page.title,
+                        symbol: page.symbol,
+                        colors: page.colors,
+                        selected: router.page == page,
+                        // Like Software Update in System Settings.
+                        badge: page == .about && updater.available != nil
+                    ) {
                         if page != .apps { query = "" }
                         router.page = page
                     }
@@ -178,6 +191,7 @@ private struct NavRow: View {
     let symbol: String
     let colors: [Color]
     let selected: Bool
+    var badge = false
     let action: () -> Void
     @State private var hovering = false
 
@@ -187,6 +201,14 @@ private struct NavRow: View {
                 IconTile(symbol: symbol, colors: colors)
                 Text(title).font(.system(size: 13))
                 Spacer()
+                if badge {
+                    Text("1")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .background(Circle().fill(Palette.negative))
+                        .accessibilityLabel("Update available")
+                }
             }
             .padding(.horizontal, 8)
             .frame(height: 32)

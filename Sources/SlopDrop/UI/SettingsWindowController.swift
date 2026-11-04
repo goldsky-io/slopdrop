@@ -40,7 +40,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.minSize = NSSize(width: 760, height: 520)
         window.delegate = self
 
-        let hosting = NSHostingView(rootView: SettingsView(model: .shared, router: router))
+        let hosting = NSHostingView(rootView: SettingsView(model: .shared, router: router, updater: .shared))
         hosting.sizingOptions = []
         window.contentView = hosting
 
