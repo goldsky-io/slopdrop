@@ -89,8 +89,8 @@ browser download.
 ## Where it lives
 
 SlopDrop sits in the menu bar. Its menu covers the everyday actions — mute on or
-off, pick a message to mute, open Apps — and **Settings…** (⌘,) opens the main
-window: General and Apps, with search across apps.
+off, pick a message to mute, open Apps, check for updates — and **Settings…**
+(⌘,) opens the main window: General, Apps and About, with search across apps.
 
 The menu bar icon shows the state: the sparkle sunk into frosted glass while
 muting, standing in front of the glass when Mute Slop is off, and hollow when
@@ -102,6 +102,26 @@ to reach. So on launch it checks whether the item actually landed in the bar; if
 it didn't, SlopDrop shows in the Dock instead and opens Settings once to say so.
 Clicking the Dock icon always opens Settings. **Show in Dock** keeps the icon
 either way.
+
+## Updates
+
+SlopDrop checks for a newer release on launch and once a day. The check is one
+HEAD request to `github.com/goldsky-io/slopdrop/releases/latest`, which
+redirects to the newest release's tag; no API key, and nothing about you or
+Slack is sent. When there is a newer version:
+
+- **Settings › About** says so, with **Install and Relaunch**, and the About row
+  in the sidebar carries a badge.
+- The menu bar menu offers **Update to SlopDrop x.y.z**.
+- A notification says so once, with an **Install** button, and again every three
+  days while the update waits.
+
+Installing downloads the release's `.zip` and `SHA256SUMS`, checks the hash,
+confirms the archive holds SlopDrop at the expected version, swaps it in for the
+running app, and relaunches it. Nothing is replaced until those checks pass. The
+download isn't quarantined, so the new build opens without a Gatekeeper prompt.
+Switching off **Check automatically** in Settings › About stops the daily check;
+**Check for Updates…** still works by hand.
 
 ## Connection monitoring
 
@@ -302,6 +322,7 @@ Sources/SlopDrop/
   Rules/Suggestions.swift        catalog, observed tallies, scoring
   Rules/AppEntry.swift           one Apps-page row: app or tool plus its rule
   UI/StatusController.swift      menu bar item and menu, Dock fallback
+  UI/AboutPane.swift             version, updates, links
   UI/SettingsWindowController.swift  the Settings window
   UI/SettingsView.swift          sidebar, search, routing
   UI/GeneralPane.swift           mute, connection, default style
@@ -311,6 +332,9 @@ Sources/SlopDrop/
   UI/IconStore.swift             Slack avatars, fetched through Slack
   Resources/slop-agent.js        renderer agent: metadata, matching, styles
   Resources/MenuBar*.png         menu bar template images, 1x and 2x
+  Updates/Release.swift          versions, the latest-release lookup, error text
+  Updates/UpdateInstaller.swift  download, checksum, identity check, bundle swap
+  Updates/Updater.swift          schedule, state, notifications, relaunch
 Scripts/build-app.sh             builds dist/SlopDrop.app, installs it locally
 Scripts/install.sh               installs a release with curl, no Gatekeeper prompt
 .github/workflows/release.yml    tag → universal .dmg and .zip on a GitHub Release
@@ -358,10 +382,12 @@ with the flag. Any local process that can reach it can inspect and drive your
 Slack session, which is the same trust boundary as Slack itself. Quitting and
 reopening Slack normally (without SlopDrop) closes the port.
 
-SlopDrop makes no network requests of its own: it only talks to `127.0.0.1`.
-App icons are fetched by Slack through `Network.loadNetworkResource` and cached
-in `~/Library/Application Support/SlopDrop/icons`, so a firewall can deny
-SlopDrop outbound access entirely.
+Apart from the update check, SlopDrop makes no network requests of its own:
+everything else goes to `127.0.0.1`. The check is one request to github.com a
+day, plus the download when you install a release. App icons are fetched by Slack
+through `Network.loadNetworkResource` and cached in
+`~/Library/Application Support/SlopDrop/icons`, so with **Check automatically**
+off a firewall can deny SlopDrop outbound access entirely.
 
 ## Caveats
 
