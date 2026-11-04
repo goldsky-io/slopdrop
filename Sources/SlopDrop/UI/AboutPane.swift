@@ -58,10 +58,10 @@ struct AboutPane: View {
         .padding(.top, 4)
     }
 
+    /// The build number stays in the bundle for macOS; it's the release
+    /// workflow's run count and means nothing to someone reading this.
     private var versionLine: String {
-        guard let current = updater.current else { return "Development build" }
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        return build.map { "Version \(current) (\($0))" } ?? "Version \(current)"
+        updater.current.map { "Version \($0)" } ?? "Development build"
     }
 
     @ViewBuilder
