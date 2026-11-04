@@ -1,6 +1,21 @@
-# SlopDrop
+<p align="center">
+  <img src="Assets/AppIcon.png" width="128" alt="SlopDrop">
+</p>
 
-A native macOS menu bar app that collapses AI slop in your Slack desktop app.
+<h1 align="center">SlopDrop</h1>
+
+<p align="center">
+  A native macOS menu bar app that collapses AI slop in your Slack desktop app.
+</p>
+
+<p align="center">
+  <a href="#build-and-run">Build</a> ·
+  <a href="#releases">Releases</a> ·
+  <a href="#apps">Apps</a> ·
+  <a href="#rules">Rules</a> ·
+  <a href="#styles">Styles</a> ·
+  <a href="#how-it-fits-together">How it fits together</a>
+</p>
 
 It does not patch Slack, fork Electron, or use the accessibility API. It starts
 Slack with a loopback DevTools port, attaches over CDP, and injects a small agent
