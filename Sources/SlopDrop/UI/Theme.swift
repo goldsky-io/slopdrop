@@ -159,6 +159,32 @@ struct ToggleRow: View {
     }
 }
 
+/// A row that opens a web page, marked with the outward arrow.
+struct LinkRow: View {
+    let title: String
+    let symbol: String
+    let url: URL
+    @State private var hovering = false
+
+    var body: some View {
+        Button { NSWorkspace.shared.open(url) } label: {
+            CardRow(title: title) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.inkSecondary)
+                    .frame(width: 18)
+            } trailing: {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(hovering ? Palette.ink : Palette.inkTertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+}
+
 // MARK: - Buttons
 
 /// Raycast's tinted capsule button ("Open Theme Studio").
