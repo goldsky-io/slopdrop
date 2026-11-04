@@ -49,7 +49,7 @@ final class StatusController: NSObject, NSMenuDelegate {
     /// Drawn by Assets/Source/icons.py.
     private static func icon(attached: Bool, revealed: Bool) -> NSImage? {
         let name = !attached ? "MenuBarDisconnected" : (revealed ? "MenuBarPaused" : "MenuBarMuting")
-        guard let image = Bundle.module.image(forResource: name) else { return nil }
+        guard let image = AppResources.bundle.image(forResource: name) else { return nil }
         image.size = NSSize(width: 18, height: 18)
         image.isTemplate = true
         image.accessibilityDescription = "SlopDrop"

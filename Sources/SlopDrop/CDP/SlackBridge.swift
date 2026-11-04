@@ -23,7 +23,7 @@ final class SlackBridge {
     var windowCount: Int { connections.count }
 
     private static func loadAgentSource() -> String {
-        if let url = Bundle.module.url(forResource: "slop-agent", withExtension: "js"),
+        if let url = AppResources.bundle.url(forResource: "slop-agent", withExtension: "js"),
            let source = try? String(contentsOf: url, encoding: .utf8) {
             return source
         }
