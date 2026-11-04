@@ -5,10 +5,14 @@
 #   ./Scripts/install.sh --version v0.1.0   a specific tag
 #   ./Scripts/install.sh --prefix ~/Applications
 #
-# Files fetched by curl or gh carry no com.apple.quarantine attribute, so macOS
-# never runs Gatekeeper's launch check — no "Open Anyway" step, unlike a browser
-# download. The checksum is still verified before anything is replaced.
+# A browser download carries com.apple.quarantine and macOS runs Gatekeeper on
+# first launch; files fetched by curl or gh never get the attribute, so the app
+# opens without the "Open Anyway" detour. The checksum is verified regardless.
 set -euo pipefail
+
+REPO="goldsky-io/slopdrop"
+VERSION=""
+PREFIX="/Applications"
 
 # Printed rather than read from $0: this script is usually piped into bash.
 usage() {
@@ -21,10 +25,6 @@ Installs a released SlopDrop build without Gatekeeper's first-launch block.
 USAGE
 }
 
-REPO="goldsky-io/slopdrop"
-VERSION=""
-PREFIX="/Applications"
-
 while [ $# -gt 0 ]; do
     case "$1" in
         --version) VERSION="${2:?--version needs a tag}"; shift 2 ;;
@@ -33,66 +33,38 @@ while [ $# -gt 0 ]; do
         *) echo "SlopDrop: unknown option $1" >&2; exit 1 ;;
     esac
 done
+[ -n "$VERSION" ] && VERSION="v${VERSION#v}"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-api="https://api.github.com/repos/$REPO"
-token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-
 have_gh() { command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; }
 
-# Read the release metadata with whichever client can authenticate; without one
-# this still works for a public repo, and fails cleanly for a private one.
-api_get() {
-    if have_gh; then
-        gh api "$api$1"
-    elif [ -n "$token" ]; then
-        curl -fsSL -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' "$api$1"
-    else
-        curl -fsSL -H 'Accept: application/vnd.github+json' "$api$1"
-    fi
-}
-
-if [ -z "$VERSION" ]; then
-    VERSION="$(api_get /releases/latest | python3 -c '
-import json, sys
-print(json.load(sys.stdin)["tag_name"])
-')" || { echo "SlopDrop: could not reach $REPO" >&2; exit 1; }
-fi
-
-release="$(api_get "/releases/tags/$VERSION")" || {
-    echo "SlopDrop: no release tagged $VERSION in $REPO" >&2
-    if ! have_gh && [ -z "$token" ]; then
-        echo "SlopDrop: $REPO is private, so authenticate gh or set GH_TOKEN" >&2
-    fi
-    exit 1
-}
-printf '%s' "$release" | python3 -c '
-import json, sys
-for asset in json.load(sys.stdin)["assets"]:
-    if asset["name"].endswith(".zip") or asset["name"] == "SHA256SUMS":
-        print(asset["id"], asset["name"])
-' > "$tmp/assets.txt"
-
-if [ ! -s "$tmp/assets.txt" ]; then
-    echo "SlopDrop: release $VERSION has no .zip or SHA256SUMS" >&2
-    exit 1
-fi
-
 if have_gh; then
+    # gh also reaches private releases; it needs no JSON parsing of its own.
+    if [ -z "$VERSION" ]; then
+        VERSION="$(gh api "repos/$REPO/releases/latest" --jq .tag_name)"
+    fi
     gh release download "$VERSION" --repo "$REPO" \
         --pattern 'SlopDrop-*.zip' --pattern 'SHA256SUMS' --dir "$tmp" --clobber
 else
-    while read -r id name; do
-        if [ -n "$token" ]; then
-            curl -fsSL -H "Authorization: Bearer $token" -H 'Accept: application/octet-stream' \
-                "$api/releases/assets/$id" -o "$tmp/$name"
-        else
-            curl -fsSL -H 'Accept: application/octet-stream' \
-                "$api/releases/assets/$id" -o "$tmp/$name"
-        fi
-    done < "$tmp/assets.txt"
+    # Public releases: resolve the tag from the redirect and fetch the assets
+    # directly, so a stock Mac needs nothing beyond curl.
+    if [ -z "$VERSION" ]; then
+        VERSION="$(curl -sIL -o /dev/null -w '%{url_effective}' \
+            "https://github.com/$REPO/releases/latest" | sed -E 's#.*/tag/##')"
+    fi
+    case "$VERSION" in
+        v[0-9]*) ;;
+        *) echo "SlopDrop: could not resolve a release; authenticate gh or pass --version" >&2; exit 1 ;;
+    esac
+    url="https://github.com/$REPO/releases/download/$VERSION"
+    curl -fsSL "$url/SlopDrop-${VERSION#v}.zip" -o "$tmp/SlopDrop-${VERSION#v}.zip" || {
+        echo "SlopDrop: could not download $VERSION from $REPO" >&2
+        echo "SlopDrop: if the repo is private, authenticate gh first" >&2
+        exit 1
+    }
+    curl -fsSL "$url/SHA256SUMS" -o "$tmp/SHA256SUMS"
 fi
 
 cd "$tmp"
@@ -104,7 +76,10 @@ shasum -a 256 -c --ignore-missing SHA256SUMS >/dev/null || {
 ditto -x -k SlopDrop-*.zip "$tmp/extracted"
 
 APP="$PREFIX/SlopDrop.app"
-mkdir -p "$PREFIX"
+mkdir -p "$PREFIX" 2>/dev/null || {
+    echo "SlopDrop: cannot write to $PREFIX — try --prefix ~/Applications" >&2
+    exit 1
+}
 rm -rf "$APP"
 ditto "$tmp/extracted/SlopDrop.app" "$APP"
 # Belt and braces, in case this script itself arrived through a browser.
