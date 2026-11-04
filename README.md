@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="#install">Install</a> ·
   <a href="#build-and-run">Build</a> ·
   <a href="#releases">Releases</a> ·
   <a href="#apps">Apps</a> ·
@@ -22,6 +23,21 @@ Slack with a loopback DevTools port, attaches over CDP, and injects a small agen
 into every Slack window. The agent reads each message's real metadata — sender,
 `bot_id`, `bot_profile.app_id`, message `metadata`, text — matches it against
 rules pushed from the app, and applies a named style.
+
+## Install
+
+Download the latest **SlopDrop** release from
+[Releases](../../releases/latest) — the `.dmg` or the `.zip` — open it, and drag
+**SlopDrop** to Applications. It needs macOS 14 or later and runs natively on
+Apple silicon and Intel alike.
+
+The build is signed ad hoc rather than notarized, so macOS blocks the first
+launch with *"Apple could not verify…"*. Click **Done**, then choose **Open
+Anyway** for SlopDrop in **System Settings › Privacy & Security**; the button only
+appears after a blocked attempt. From a terminal,
+`xattr -dr com.apple.quarantine /Applications/SlopDrop.app` does the same thing.
+
+SlopDrop then lives in the menu bar and attaches to Slack itself.
 
 ## Build and run
 
@@ -58,9 +74,7 @@ The tag is the version. `v0.2.0` becomes `CFBundleShortVersionString` `0.2.0`,
 a `-something` suffix marks the release as a prerelease, and the workflow run
 number becomes `CFBundleVersion`, which macOS needs to only ever grow. Local
 builds read the newest tag the same way. Builds are signed ad hoc rather than
-notarized, so macOS blocks the first launch of a download: click **Done** in the
-dialog, then choose **Open Anyway** for SlopDrop in **System Settings › Privacy
-& Security**, or run `xattr -dr com.apple.quarantine /Applications/SlopDrop.app`.
+notarized, so a download needs the Gatekeeper step in [Install](#install).
 
 ## Where it lives
 
