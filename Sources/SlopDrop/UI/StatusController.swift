@@ -9,6 +9,7 @@ import Combine
 @MainActor
 final class StatusController: NSObject, NSMenuDelegate {
     private let model: AppModel
+    private let updater: Updater
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
     private var cancellables: Set<AnyCancellable> = []
@@ -16,8 +17,9 @@ final class StatusController: NSObject, NSMenuDelegate {
     private var placementTimer: Timer?
     private(set) var isHiddenFromMenuBar = false
 
-    init(model: AppModel) {
+    init(model: AppModel, updater: Updater) {
         self.model = model
+        self.updater = updater
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
 
@@ -69,6 +71,13 @@ final class StatusController: NSObject, NSMenuDelegate {
         if !model.attachment.isAttached && !model.attachment.isBusy {
             menu.addItem(item("Connect to Slack", #selector(connect)))
         }
+        if let release = updater.available {
+            let installing = updater.activity == .installing
+            let update = item(installing ? "Installing SlopDrop \(release.versionText)…" : "Update to SlopDrop \(release.versionText)", #selector(installUpdate))
+            update.isEnabled = !installing
+            update.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
+            menu.addItem(update)
+        }
         menu.addItem(.separator())
 
         let mute = item("Mute Slop", #selector(toggleMute))
@@ -79,6 +88,9 @@ final class StatusController: NSObject, NSMenuDelegate {
         menu.addItem(pick)
         menu.addItem(item("Apps…", #selector(openApps)))
         menu.addItem(.separator())
+        if updater.available == nil, updater.current != nil {
+            menu.addItem(item("Check for Updates…", #selector(checkForUpdates)))
+        }
         menu.addItem(item("Settings…", #selector(openSettings), key: ","))
         menu.addItem(item("Quit SlopDrop", #selector(quit), key: "q"))
     }
@@ -94,6 +106,12 @@ final class StatusController: NSObject, NSMenuDelegate {
     @objc private func openApps() { SettingsWindowController.shared.show(page: .apps) }
     @objc private func openSettings() { SettingsWindowController.shared.show() }
     @objc private func quit() { NSApp.terminate(nil) }
+    @objc private func installUpdate() { updater.install() }
+
+    @objc private func checkForUpdates() {
+        SettingsWindowController.shared.show(page: .about)
+        updater.check(userInitiated: true)
+    }
 
     @objc private func togglePick() {
         if model.pickMode {

@@ -13,13 +13,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         withExtendedLifetime(delegate) {}
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Before launch finishes, so a notification that launched us still reaches it.
+        MainActor.assumeIsolated { Updater.shared.start() }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             NSApp.mainMenu = Self.makeMainMenu()
             AppModel.shared.start()
             IconStore.shared.loader = { await AppModel.shared.loadResource($0) }
 
-            let controller = StatusController(model: AppModel.shared)
+            let controller = StatusController(model: AppModel.shared, updater: Updater.shared)
             statusController = controller
             // The system places the status item after launch, so give it a beat
             // before deciding whether it actually made it into the menu bar.
@@ -42,6 +47,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated { SettingsWindowController.shared.show() }
     }
 
+    @objc private func openAbout() {
+        MainActor.assumeIsolated { SettingsWindowController.shared.show(page: .about) }
+    }
+
+    @objc private func checkForUpdates() {
+        MainActor.assumeIsolated {
+            SettingsWindowController.shared.show(page: .about)
+            Updater.shared.check(userInitiated: true)
+        }
+    }
+
     /// Without a main menu, key equivalents like ⌘V in the search field and
     /// ⌘W on the Settings window have nothing to dispatch through.
     @MainActor
@@ -49,7 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
 
         let app = NSMenu()
-        app.addItem(withTitle: "About SlopDrop", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let about = app.addItem(withTitle: "About SlopDrop", action: #selector(openAbout), keyEquivalent: "")
+        about.target = NSApp.delegate
+        let updates = app.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = NSApp.delegate
         app.addItem(.separator())
         let settings = app.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = NSApp.delegate
