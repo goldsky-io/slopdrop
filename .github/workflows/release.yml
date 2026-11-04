@@ -1,0 +1,114 @@
+name: Release
+
+# Push a version tag (v1.2.3) and this builds SlopDrop.app for both architectures
+# and publishes it as a GitHub Release. See README › Releases.
+on:
+  push:
+    tags: ["v*"]
+  # Lets you rebuild an existing tag from the Actions tab if a run fails.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish (e.g. v0.2.0)
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve version from the tag
+        id: version
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not a version (expected v1.2.3 or v1.2.3-beta.1)"
+            exit 1
+          fi
+          version="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          case "$version" in
+            *-*) echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Build app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUNDLE_VERSION: ${{ github.run_number }}
+          UNIVERSAL: "1"
+          INSTALL_DIR: "" # build dist/SlopDrop.app, don't install
+        run: ./Scripts/build-app.sh release
+
+      - name: Package app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          name="SlopDrop-$VERSION"
+          mkdir -p release
+
+          ditto -c -k --keepParent dist/SlopDrop.app "release/$name.zip"
+
+          staging="$(mktemp -d)"
+          cp -R dist/SlopDrop.app "$staging/"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create -quiet -volname SlopDrop -srcfolder "$staging" \
+            -ov -format UDZO "release/$name.dmg"
+
+          cd release
+          shasum -a 256 "$name.zip" "$name.dmg" > SHA256SUMS
+          ls -lh
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          cat > release/notes.md <<EOF
+          **Requires macOS 14 or later.** Universal build for Apple silicon and Intel.
+
+          ### Install
+
+          1. Download **SlopDrop-$VERSION.dmg**, open it, and drag **SlopDrop** to Applications (or unzip \`SlopDrop-$VERSION.zip\`).
+          2. This build is signed ad hoc rather than notarized, so Gatekeeper asks once: right-click **SlopDrop** in Applications → **Open**, or run \`xattr -dr com.apple.quarantine /Applications/SlopDrop.app\`.
+          3. SlopDrop lives in the menu bar and attaches to Slack itself.
+
+          Check downloads against \`SHA256SUMS\` if you like.
+          EOF
+
+          assets=("release/SlopDrop-$VERSION.dmg" "release/SlopDrop-$VERSION.zip" release/SHA256SUMS)
+
+          # A retried run usually finds the release already published, so replace it in place.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --clobber
+            gh release edit "$TAG" \
+              --title "SlopDrop $VERSION" \
+              --notes-file release/notes.md \
+              ${PRERELEASE:+"$PRERELEASE"}
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --title "SlopDrop $VERSION" \
+              --notes-file release/notes.md \
+              --generate-notes \
+              --verify-tag \
+              ${PRERELEASE:+"$PRERELEASE"}
+          fi
