@@ -37,6 +37,10 @@ Anyway** for SlopDrop in **System Settings › Privacy & Security**; the button 
 appears after a blocked attempt. From a terminal,
 `xattr -dr com.apple.quarantine /Applications/SlopDrop.app` does the same thing.
 
+<p align="center">
+  <img src="Assets/OpenAnyway.png" width="880" alt="System Settings, Privacy &amp; Security: SlopDrop was blocked to protect your Mac, with an Open Anyway button">
+</p>
+
 SlopDrop then lives in the menu bar and attaches to Slack itself.
 
 ## Build and run
@@ -307,6 +311,7 @@ Assets/
   AppIcon.icns                   app icon, copied into the bundle by build-app.sh
   AppIcon.iconset/, AppIcon.png  the same icon as PNGs
   Source/icons.py                draws every icon; SVG masters beside it
+  OpenAnyway.png                 the Gatekeeper step, shown in Install
 ```
 
 Every 2 seconds the app re-lists Slack's DevTools targets, connects to new
