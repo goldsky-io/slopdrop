@@ -20,14 +20,27 @@ VERSION="${VERSION:-0.1.0}"
 # CFBundleVersion: any integer that only ever grows; releases pass the workflow run number.
 BUNDLE_VERSION="${BUNDLE_VERSION:-1}"
 
-ARCH_ARGS=()
 if [ "${UNIVERSAL:-0}" = "1" ]; then
-    ARCH_ARGS=(--arch arm64 --arch x86_64)
+    # Two single-arch builds and a lipo, not `--arch arm64 --arch x86_64`: the
+    # multi-arch path builds through XCBuild and fails on some toolchains
+    # ("SWIFT_VERSION '' is unsupported"), which broke the release workflow.
+    build_arch() {
+        swift build -c "$CONFIG" --arch "$1" --scratch-path "$ROOT/.build/$1" --product SlopDrop >&2
+        swift build -c "$CONFIG" --arch "$1" --scratch-path "$ROOT/.build/$1" --show-bin-path | tail -n 1
+    }
+    ARM_BIN="$(build_arch arm64)"
+    INTEL_BIN="$(build_arch x86_64)"
+
+    BIN="$ROOT/.build/universal/$CONFIG"
+    rm -rf "$BIN"
+    mkdir -p "$BIN"
+    lipo -create "$ARM_BIN/SlopDrop" "$INTEL_BIN/SlopDrop" -output "$BIN/SlopDrop"
+    cp -R "$ARM_BIN/SlopDrop_SlopDrop.bundle" "$BIN/"
+    echo "universal: $(lipo -archs "$BIN/SlopDrop")"
+else
+    swift build -c "$CONFIG" --product SlopDrop
+    BIN="$(swift build -c "$CONFIG" --show-bin-path | tail -n 1)"
 fi
-
-swift build -c "$CONFIG" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"} --product SlopDrop
-
-BIN="$(swift build -c "$CONFIG" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"} --show-bin-path)"
 APP="$ROOT/dist/SlopDrop.app"
 
 rm -rf "$APP"
