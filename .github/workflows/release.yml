@@ -88,9 +88,13 @@ jobs:
 
           ### Install
 
-          1. Download **SlopDrop-$VERSION.dmg**, open it, and drag **SlopDrop** to Applications (or unzip \`SlopDrop-$VERSION.zip\`).
-          2. This build is signed ad hoc rather than notarized, so macOS blocks the first launch: click **Done** in the dialog, then choose **Open Anyway** for SlopDrop in **System Settings › Privacy & Security**. In a terminal, \`xattr -dr com.apple.quarantine /Applications/SlopDrop.app\` does the same.
-          3. SlopDrop lives in the menu bar and attaches to Slack itself.
+          \`\`\`bash
+          curl -fsSL https://raw.githubusercontent.com/goldsky-io/slopdrop/main/Scripts/install.sh | bash
+          \`\`\`
+
+          That installs this release, checks its SHA-256, and puts it in Applications. Because it downloads with \`curl\`, macOS never quarantines the app, so there is no first-launch prompt.
+
+          Prefer the disk image? Open **SlopDrop-$VERSION.dmg** and drag **SlopDrop** to Applications. A browser download *is* quarantined, so if macOS says the app "could not be verified", run \`xattr -dr com.apple.quarantine /Applications/SlopDrop.app\` first.
 
           Check downloads against \`SHA256SUMS\` if you like.
           EOF
