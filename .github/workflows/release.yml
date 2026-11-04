@@ -89,7 +89,7 @@ jobs:
           ### Install
 
           1. Download **SlopDrop-$VERSION.dmg**, open it, and drag **SlopDrop** to Applications (or unzip \`SlopDrop-$VERSION.zip\`).
-          2. This build is signed ad hoc rather than notarized, so Gatekeeper asks once: right-click **SlopDrop** in Applications → **Open**, or run \`xattr -dr com.apple.quarantine /Applications/SlopDrop.app\`.
+          2. This build is signed ad hoc rather than notarized, so macOS blocks the first launch: click **Done** in the dialog, then choose **Open Anyway** for SlopDrop in **System Settings › Privacy & Security**. In a terminal, \`xattr -dr com.apple.quarantine /Applications/SlopDrop.app\` does the same.
           3. SlopDrop lives in the menu bar and attaches to Slack itself.
 
           Check downloads against \`SHA256SUMS\` if you like.

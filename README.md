@@ -58,8 +58,9 @@ The tag is the version. `v0.2.0` becomes `CFBundleShortVersionString` `0.2.0`,
 a `-something` suffix marks the release as a prerelease, and the workflow run
 number becomes `CFBundleVersion`, which macOS needs to only ever grow. Local
 builds read the newest tag the same way. Builds are signed ad hoc rather than
-notarized, so downloads ask Gatekeeper once: right-click the app → **Open**, or
-`xattr -dr com.apple.quarantine /Applications/SlopDrop.app`.
+notarized, so macOS blocks the first launch of a download: click **Done** in the
+dialog, then choose **Open Anyway** for SlopDrop in **System Settings › Privacy
+& Security**, or run `xattr -dr com.apple.quarantine /Applications/SlopDrop.app`.
 
 ## Where it lives
 
