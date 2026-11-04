@@ -26,22 +26,27 @@ rules pushed from the app, and applies a named style.
 
 ## Install
 
-Download the latest **SlopDrop** release from
-[Releases](../../releases/latest) — the `.dmg` or the `.zip` — open it, and drag
-**SlopDrop** to Applications. It needs macOS 14 or later and runs natively on
-Apple silicon and Intel alike.
+One command installs the newest release, verifies its checksum, and replaces any
+existing copy. It downloads with `curl`, so macOS never quarantines the app and
+there is no first-launch prompt:
 
-The build is signed ad hoc rather than notarized, so macOS blocks the first
-launch with *"Apple could not verify…"*. Click **Done**, then choose **Open
-Anyway** for SlopDrop in **System Settings › Privacy & Security**; the button only
-appears after a blocked attempt. From a terminal,
-`xattr -dr com.apple.quarantine /Applications/SlopDrop.app` does the same thing.
+```bash
+curl -fsSL https://raw.githubusercontent.com/goldsky-io/slopdrop/main/Scripts/install.sh | bash
+```
 
-<p align="center">
-  <img src="Assets/OpenAnyway.png" width="880" alt="System Settings, Privacy &amp; Security: SlopDrop was blocked to protect your Mac, with an Open Anyway button">
-</p>
+`--version v0.1.0` pins a release, and `--prefix ~/Applications` installs
+somewhere other than `/Applications`.
 
-SlopDrop then lives in the menu bar and attaches to Slack itself.
+Or take the `.dmg` from [Releases](../../releases/latest) and drag **SlopDrop** to
+Applications. A browser download does get quarantined, so if macOS says the app
+"could not be verified", clear that first:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/SlopDrop.app
+```
+
+SlopDrop needs macOS 14 or later and runs natively on Apple silicon and Intel.
+It then lives in the menu bar and attaches to Slack itself.
 
 ## Build and run
 
@@ -78,7 +83,8 @@ The tag is the version. `v0.2.0` becomes `CFBundleShortVersionString` `0.2.0`,
 a `-something` suffix marks the release as a prerelease, and the workflow run
 number becomes `CFBundleVersion`, which macOS needs to only ever grow. Local
 builds read the newest tag the same way. Builds are signed ad hoc rather than
-notarized, so a download needs the Gatekeeper step in [Install](#install).
+notarized, which is why [Install](#install) leads with the script rather than a
+browser download.
 
 ## Where it lives
 
@@ -306,12 +312,12 @@ Sources/SlopDrop/
   Resources/slop-agent.js        renderer agent: metadata, matching, styles
   Resources/MenuBar*.png         menu bar template images, 1x and 2x
 Scripts/build-app.sh             builds dist/SlopDrop.app, installs it locally
+Scripts/install.sh               installs a release with curl, no Gatekeeper prompt
 .github/workflows/release.yml    tag → universal .dmg and .zip on a GitHub Release
 Assets/
   AppIcon.icns                   app icon, copied into the bundle by build-app.sh
   AppIcon.iconset/, AppIcon.png  the same icon as PNGs
   Source/icons.py                draws every icon; SVG masters beside it
-  OpenAnyway.png                 the Gatekeeper step, shown in Install
 ```
 
 Every 2 seconds the app re-lists Slack's DevTools targets, connects to new
