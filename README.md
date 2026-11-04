@@ -91,8 +91,9 @@ Slack is already open, it restarts once, about four seconds after SlopDrop start
 Settings → Apps is a single list, like the ones in System Settings: every app,
 bot and "Sent using" tool SlopDrop knows about, each with a switch to mute it.
 
-- **All apps and bots** sits on top. On, it mutes every app and bot, including
-  ones that haven't posted yet; switch an app off below to let it through.
+- **All apps and bots** sits on top and is already on for a new install: every
+  app and bot is muted, including ones that haven't posted yet, and you switch
+  off the few you want to read.
 - **Each row** is one app or tool. Its switch shows whether it's muted, whether
   by its own setting or by All apps. Hovering a muted row offers a style menu;
   a row with its own style shows it at rest, and **Default** hands it back to
