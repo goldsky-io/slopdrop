@@ -139,8 +139,15 @@ every two seconds and heals itself:
   and you launching Slack by hand.
 - **Slack not running** — does nothing. SlopDrop never launches Slack on its own;
   once you open it, the case above picks it up.
-- **Repeated failures** — backs off 5s, 15s, 60s, then every 5 minutes, and shows
-  the countdown in Settings. The backoff resets as soon as a connection succeeds.
+- **Repeated failures** — backs off 5s, then 15s, showing the countdown in
+  Settings. After a third failed restart it stops and shows the error until you
+  press Connect. The count resets as soon as a connection succeeds.
+
+Slack 4.53 and later only open the port when they run from a profile other
+than the default one, so SlopDrop starts Slack with
+`--user-data-dir=~/Library/Application Support/SlopDrop/SlackProfile`. The first
+time, that Slack isn't signed in: sign in to your workspaces once and it stays
+signed in from then on.
 
 **Reconnect automatically** in Settings turns this off; the Connect button then
 does it on demand instead. The first launch is the one that surprises people: if
