@@ -69,6 +69,9 @@ final class AppModel: ObservableObject {
     private let settleDelay: TimeInterval = 4
     /// Delay before each retry after a failed restart.
     private let retryDelays: [TimeInterval] = [5, 15, 60, 300]
+    /// Automatic restarts in a row before giving up. Each one quits Slack, so
+    /// a restart that can never succeed must not keep killing it forever.
+    private let maxAutoRestarts = 3
 
     private var mismatchSince: Date?
     private var nextRestartAllowed = Date.distantPast
@@ -306,6 +309,11 @@ final class AppModel: ObservableObject {
             attachment = .needsRestart
             return
         }
+        if restartFailures >= maxAutoRestarts {
+            if case .failed = attachment { return }
+            attachment = .failed("Couldn't restart Slack with the control port. Use Connect to try again.")
+            return
+        }
         if now < nextRestartAllowed {
             attachment = .failed("Couldn't restart Slack. Retrying in \(Int(nextRestartAllowed.timeIntervalSince(now)))s")
             return
@@ -335,9 +343,14 @@ final class AppModel: ObservableObject {
             await tick()
         } catch {
             restartFailures += 1
+            mismatchSince = Date()
+            if restartFailures >= maxAutoRestarts {
+                NSLog("SlopDrop: restart failed \(restartFailures) times — \(error.localizedDescription); giving up until Connect")
+                attachment = .failed("Couldn't restart Slack: \(error.localizedDescription). Use Connect to try again.")
+                return
+            }
             let delay = retryDelays[min(restartFailures, retryDelays.count) - 1]
             nextRestartAllowed = Date().addingTimeInterval(delay)
-            mismatchSince = Date()
             NSLog("SlopDrop: restart failed — \(error.localizedDescription); retrying in \(Int(delay))s")
             attachment = .failed("Couldn't restart Slack. Retrying in \(Int(delay))s")
         }

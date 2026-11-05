@@ -15,8 +15,24 @@ enum SlackLauncher {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
     }
 
+    /// Slack 4.53+ refuses `--remote-debugging-port` against its default
+    /// profile ("requires --user-data-dir pointing outside the default
+    /// profile"), so SlopDrop runs Slack from a profile of its own. The user
+    /// signs in there once; after that it persists like the default one.
+    static var profileDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("SlopDrop/SlackProfile", isDirectory: true)
+    }
+
+    static func launchArguments(port: Int) -> [String] {
+        [
+            "--remote-debugging-port=\(port)",
+            "--user-data-dir=\(profileDirectory.path)",
+        ]
+    }
+
     /// Quits Slack if needed, then launches it with the debugging port and waits
-    /// for the port to answer. Returns the number of attempts' worth of truth.
+    /// for the port to answer.
     static func relaunch(port: Int) async throws {
         if isRunning {
             for app in runningApplications { app.terminate() }
@@ -44,10 +60,12 @@ enum SlackLauncher {
         guard let appURL = applicationURL else {
             throw CDPError(message: "Slack.app is not installed")
         }
+        try FileManager.default.createDirectory(at: profileDirectory, withIntermediateDirectories: true)
+        let arguments = launchArguments(port: port)
 
         // Preferred: LaunchServices, so the app gets its normal environment.
         let configuration = NSWorkspace.OpenConfiguration()
-        configuration.arguments = ["--remote-debugging-port=\(port)"]
+        configuration.arguments = arguments
         configuration.createsNewApplicationInstance = false
 
         let semaphore = DispatchSemaphore(value: 0)
@@ -64,7 +82,7 @@ enum SlackLauncher {
         let binary = appURL.appendingPathComponent("Contents/MacOS/Slack")
         let process = Process()
         process.executableURL = binary
-        process.arguments = ["--remote-debugging-port=\(port)"]
+        process.arguments = arguments
         try process.run()
     }
 }
