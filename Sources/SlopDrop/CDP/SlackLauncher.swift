@@ -19,8 +19,17 @@ enum SlackLauncher {
     /// profile ("requires --user-data-dir pointing outside the default
     /// profile"), so SlopDrop runs Slack from a profile of its own. The user
     /// signs in there once; after that it persists like the default one.
+    ///
+    /// That profile has to live inside Slack's App Sandbox container. Slack is
+    /// sandboxed, so a directory under `~/Library/Application Support` is
+    /// unwritable to it: it quits within seconds of launch with a fatal
+    /// "EPERM … mkdir …/storage" before the debugging port is of any use.
     static var profileDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(
+                "Library/Containers/\(bundleIdentifier)/Data/Library/Application Support",
+                isDirectory: true
+            )
             .appendingPathComponent("SlopDrop/SlackProfile", isDirectory: true)
     }
 

@@ -144,10 +144,13 @@ every two seconds and heals itself:
   press Connect. The count resets as soon as a connection succeeds.
 
 Slack 4.53 and later only open the port when they run from a profile other
-than the default one, so SlopDrop starts Slack with
-`--user-data-dir=~/Library/Application Support/SlopDrop/SlackProfile`. The first
-time, that Slack isn't signed in: sign in to your workspaces once and it stays
-signed in from then on.
+than the default one, so SlopDrop starts Slack with a profile of its own. Slack
+is App-Sandboxed, so that profile has to sit inside Slack's container —
+`--user-data-dir=~/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/SlopDrop/SlackProfile`.
+Point it anywhere under `~/Library/Application Support` and Slack can't create
+its store there: it quits a few seconds after launch with a fatal `EPERM`,
+which looks like Slack crashing. The first time, that profile isn't signed in:
+sign in to your workspaces once and it stays signed in from then on.
 
 **Reconnect automatically** in Settings turns this off; the Connect button then
 does it on demand instead. The first launch is the one that surprises people: if
